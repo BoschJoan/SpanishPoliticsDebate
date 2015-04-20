@@ -1,0 +1,161 @@
+﻿<!DOCTYPE html>
+
+<meta charset="utf-8">
+<link rel="stylesheet" href="spiderStyle.css">
+
+<style>
+body {
+  padding: 20px;
+}
+.radar-chart .area {
+  fill-opacity: 0.7;
+}
+.radar-chart.focus .area {
+  fill-opacity: 0.3;
+}
+.radar-chart.focus .area.focused {
+  fill-opacity: 0.9;
+}
+.year.label {
+  font: 500 76px "Helvetica Neue";
+  fill: #aaa;
+}
+.overlay {
+  fill: none;
+  pointer-events: all;
+  cursor: ns-resize;
+}
+</style>
+
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="spiderChart.js"></script>
+
+<span></span>
+
+<script>
+
+var data = d3.json("data/data.json", function(error, data){
+	plotChart(data);
+});
+
+function plotChart(data) {
+	var notInterrupted = true;
+
+	varIni = data[1];
+	var periods = [];
+	for (i = 0; i < data[0][0].axes[0].value.length; i++) {
+		periods.push(varIni + i);
+	}
+
+	var firstYear = Math.floor(varIni / 12) + 2000;
+	if ((varIni + periods.length - 1) % 12 == 0) {
+		var lastYear = Math.floor((varIni + periods.length - 1) / 12) + 1999;
+	} else {
+		var lastYear = Math.floor((varIni + periods.length - 1) / 12) + 2000;
+	}
+
+	var years = [];
+	for (i = firstYear; i <= lastYear; i++){
+		years.push(i);
+	}
+
+	var months = ["E","F","M","A","M","J","J","A","S","O","N","D"];
+
+	function getDataset(n) {
+		return data[0].map(function(d) {
+			return {
+				className: d.className,
+				axes: d.axes.map(function(axis) {
+					return {axis: axis.axis, value: axis.value[n]};
+				})
+			};
+		});
+	}
+
+	var chart = RadarChart.chart();
+	var cfg = chart.config(); // retrieve default config
+	var svg = d3.select('body').append('svg')
+		.attr('width', cfg.w  * 2 + 50)
+		.attr('height', cfg.h + 100);
+
+	var label = svg.append("text")
+		.attr("class", "year label")
+		.attr("text-anchor", "middle")
+		.attr("y", cfg.h + 60)
+		.attr("x", cfg.w / 2)
+		.text(function(){
+			return getMonthYearText(varIni);
+		});
+		
+	function getMonthYearText(period){
+		var m = period % 12;
+		if (m == 0){
+			m = 12;
+		}
+		return m + "/" + (Math.floor((period - 1) / 12) + 2000);
+	}
+
+	var ys = svg.selectAll("y")
+				.data(years)
+				.enter()
+				.append("text")
+				.attr("fill", '#ddd')
+				.attr("font-size", function(){
+					return Math.min((400 - (years.length) * 10) / (years.length + 1) - 6, 44);
+				})
+				.attr("text-anchor", "start")
+				.attr("y", function(d, i) {
+					return ((i + 1) * Math.min(cfg.h / years.length, 50) + 20);
+				})
+				.attr("x", cfg.w + 50)
+				.text(function(d){
+					return d;
+				})
+				.attr("cursor","context-menu");
+
+				
+	pad = svg.selectAll('pad')
+				.data(periods)
+				.enter()
+				.append('rect')
+				.attr("fill","#ddd")
+				.attr("x",function(d){
+					return cfg.w + 50 + 100 + ((d - 1) % 12) * 25;
+				})
+				.attr("y", function(d){
+					a = Math.floor(d / 12) - Math.floor(varIni / 12);
+					if (d % 12 == 0){
+						a = a - 1;
+					}
+					return a * Math.min(50, cfg.h / years.length) + 25;
+				})
+				.attr("width", 23)
+				.attr("height", function(d){
+					return Math.min(48, cfg.h / years.length - 2);
+				})
+				.on("mouseenter",function(d){
+					d3.select(this).attr("fill", '#aaa');
+					notInterrupted = false;
+					return renderMonth(d);
+				})
+				.on("mouseleave",function(){
+					d3.select(this).attr("fill", '#ddd')
+				});
+
+	function renderMonth(n){
+		label.text(getMonthYearText(n));
+		return render(n - varIni);
+	}
+
+	chart.config({w: cfg.w, h: cfg.h, axisText: true, levels: 5, circles: true});
+	cfg = chart.config();
+
+	function render(n) {
+	  var game = svg.selectAll('g.game').data([getDataset(n)]);
+		game.enter().append('g').classed('game', 1);
+		game.call(chart);
+	}
+
+	render(0);
+}
+</script>
