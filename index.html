@@ -34,16 +34,16 @@ body {
 
 <script>
 
-var data = d3.json("data/data.json", function(error, data){
-	plotChart(data);
+var data = d3.json("data/data.json", function(error, dades){
+	plotChart(dades);
 });
 
-function plotChart(data) {
+function plotChart(dades) {
 	var notInterrupted = true;
 
-	var Ini = data[1];
+	var Ini = dades[1];
 	var periods = [];
-	for (i = 0; i < data[0][0].axes[0].value.length; i++) {
+	for (i = 0; i < dades[0][0].axes[0].value.length; i++) {
 		periods.push(varIni + i);
 	}
 
@@ -62,7 +62,7 @@ function plotChart(data) {
 	var months = ["E","F","M","A","M","J","J","A","S","O","N","D"];
 
 	function getDataset(n) {
-		return data[0].map(function(d) {
+		return dades[0].map(function(d) {
 			return {
 				className: d.className,
 				axes: d.axes.map(function(axis) {
